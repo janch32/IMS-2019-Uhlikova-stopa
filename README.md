@@ -1,1 +1,2 @@
-# IMS-2019-Uhlikova-stopa
+# IMS 2019 Uhlíková stopa
+Vytápění kancelářských prostor zbytkovým teplem ze serverů
