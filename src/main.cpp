@@ -22,45 +22,54 @@ int main(int argc, char *const *argv)
 	return 0;
 }
 
-void calcViability(double ti, double K, double P, double V)
+#define TIME_INTERVAL 60 // sec
+
+void calcViability(double tt, double K, double P, double V)
 {
 	double to;
+	double ti = tt;
 
 	for (int d = 0; d < 365; ++d)
 	{
-		cout << "\nDay: " << d + 1 << "\n\n";
+		//cout << "\nDay: " << d + 1 << "\n\n";
 
-		for (int h = 0; h < 24; ++h)
+		int heatedSteps = 0;
+		int steps = 0;
+
+		bool heating = true;
+		
+		for (int s = 0; s < 60*60*24; s += TIME_INTERVAL)
 		{
-			to = calcCurrentOuterTemp(d, h);
+			heatedSteps += heating;
+			steps++;
 
-			ti = calcNewInnerTemp(ti, to, K, P, V);
+			if(ti > tt + 2) heating = false;
+			else if(ti < tt) heating = true;
 
-			cout << "Inside: " << ti << " °C" << "\t\t\tOutside: " << to << " °C\n";
+			to = calcCurrentOuterTemp(d, s);
+			ti = calcNewInnerTemp(ti, to, K, heating ? P : 0, V, TIME_INTERVAL);
+
+			cout << ti << "," << to << endl;
 		}
+
+		//cout << heatedSteps / (double)steps * 100 << "%" << endl;
 	}
 }
 
-double calcNewInnerTemp(double ti, double to, double K, double P, double V)
+double calcNewInnerTemp(double ti, double to, double K, double P, double V, int time)
 {
-	double t;		// (s)	Časový interval měření
-
 	double m; 		// (Kg) Hmotnost vzduchu v místnosti
 	double c;		// 		Měrná tepelná kapacita vzduchu
 
 	double Qt;		// (J) 	Tepelný zisk topením
 	double Qz;		// (J) 	Tepelná ztráta zvenku
 
-	t = 3600;
 	c = 1000.0;
 	m = 1.2 * V;
-	Qt = P * t;
-	Qz = K * (ti - to) * t;
+	Qt = P * time;
+	Qz = K * (ti - to) * time;
 
-	ti = ti + ((Qt - Qz) / (c * m)); 	// Výsledná teplota místnosti ti po časovém intervalu t
-
-	if (ti > 25.0) return 25.0;			// Přebytečné teplo je vypouštěno ven
-	 return ti;
+	return ti + ((Qt - Qz) / (c * m)); // Výsledná teplota místnosti ti po časovém intervalu t
 }
 
 void parseArgs(int argc, char *const *argv, double *t, double *K, double *P, double *V)
@@ -115,14 +124,14 @@ void parseArgs(int argc, char *const *argv, double *t, double *K, double *P, dou
 	if (!ist || !isK || !isP || !isV) throw std::invalid_argument( "Všechny čtyři přepínače (-t, -V, -P, -K) jsou povinné." );
 }
 
-double calcCurrentOuterTemp(int day, int hour)
+double calcCurrentOuterTemp(int day, int sec)
 {
-	if (day == 0 && hour < 7)	// Integritní omezení (nelze sáhnout mimo rozsah dat)
+	if (day == 0 && sec < 7*3600)	// Integritní omezení (nelze sáhnout mimo rozsah dat)
 	{
 		return morn[day];
 	}
 
-	if (day == 364 && hour >= 21)	// Integritní omezení (nelze sáhnout mimo rozsah dat)
+	if (day == 364 && sec >= 21*3600)	// Integritní omezení (nelze sáhnout mimo rozsah dat)
 	{
 		return eve[day];
 	}
@@ -132,39 +141,39 @@ double calcCurrentOuterTemp(int day, int hour)
 
 	int current;	// Současná pozice času ve zvoleném okně
 
-	int win = 10;		// Velikost časového okna
+	int win = 10*3600;		// Velikost časového okna
 
-	if (hour >=7 && hour < 21)
+	if (sec >=7*3600 && sec < 21*3600)
 	{
-		win = 7;
+		win = 7*3600;
 	}
 
-	if (hour < 7)		// Dnešní noc
+	if (sec < 7*3600)		// Dnešní noc
 	{
 		t1 = eve[day - 1];
 		t2 = morn[day];
-		current = hour + 3;
+		current = sec + 3*3600;
 	}
 
-	else if (hour < 14) 	// Dopoledne
+	else if (sec < 14*3600) 	// Dopoledne
 	{
 		t1 = morn[day];
 		t2 = noon[day];
-		current = hour - 7;
+		current = sec - 7*3600;
 	}
 
-	else if (hour < 21) 	// Odpoledne
+	else if (sec < 21*3600) 	// Odpoledne
 	{
 		t1 = noon[day];
 		t2 = eve[day];
-		current = hour - 14;
+		current = sec - 14*3600;
 	}
 
 	else	// Příští noc
 	{
 		t1 = eve[day];
 		t2 = morn[day + 1];
-		current = hour - 21;
+		current = sec - 21*3600;
 	}
 	
 	return (t1 + (((double)current / (double)win) * (t2 - t1)));

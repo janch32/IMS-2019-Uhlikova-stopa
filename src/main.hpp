@@ -10,9 +10,9 @@ void parseArgs(int argc, char *const *argv, double *t, double *K, double *P, dou
 
 void calcViability(double ti, double K, double P, double V);
 
-double calcCurrentOuterTemp(int day, int hour);
+double calcCurrentOuterTemp(int day, int sec);
 
-double calcNewInnerTemp(double ti, double to, double K, double P, double V);
+double calcNewInnerTemp(double ti, double to, double K, double P, double V, int time);
 
 float morn[]
 	{
