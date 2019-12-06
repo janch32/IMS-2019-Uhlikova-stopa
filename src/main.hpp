@@ -8,6 +8,8 @@ int main(int argc, char *const *argv);
 
 void parseArgs(int argc, char *const *argv, double *t, double *K, double *P, double *V);
 
+double calcTemperature(double ti, double to, double t, double K, double P, double V);
+
 float morn[]
 	{
 		-0.5,

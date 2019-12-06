@@ -20,6 +20,22 @@ int main(int argc, char *const *argv)
 	return 0;
 }
 
+double calcTemperature(double ti, double to, double t, double K, double P, double V)
+{
+	double m; 		// (Kg) Hmotnost vzduchu v místnosti
+	double c;		// 		Měrná tepelná kapacita vzduchu
+
+	double Qt;		// (J) 	Tepelný zisk topením
+	double Qz;		// (J) 	Tepelná ztráta zvenku
+
+	c = 1000.0;
+	m = 1.2 * V;
+	Qt = P * t;
+	Qz = K * (ti - to) * t;
+
+	return (ti + (Qt - Qz) / (c * m));  // Výsledná teplota místnosti ti po časovém intervalu t
+}
+
 void parseArgs(int argc, char *const *argv, double *t, double *K, double *P, double *V)
 {
 	int opt;
