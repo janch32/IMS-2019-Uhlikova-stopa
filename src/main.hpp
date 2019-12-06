@@ -8,7 +8,11 @@ int main(int argc, char *const *argv);
 
 void parseArgs(int argc, char *const *argv, double *t, double *K, double *P, double *V);
 
-double calcTemperature(double ti, double to, double t, double K, double P, double V);
+void calcViability(double ti, double K, double P, double V);
+
+double calcCurrentOuterTemp(int day, int hour);
+
+double calcNewInnerTemp(double ti, double to, double K, double P, double V);
 
 float morn[]
 	{
