@@ -7,14 +7,14 @@ Vhodný výkon topení pro specifikovanou kancelář:
 
 Tun CO2 vytvořeno za rok normálního topení: 
 
-	5.45612 t
+	5.28484 t
 
 Vaše samotné servery by kancelář vytopit nezvládly.
 
-Tun CO2 vytvořeno navíc za rok hybridního topení: 
+Tun CO2 vytvořeno za rok hybridního topení: 
 
-	0.18804 t (5.26808 t CO2 ušetřeno hybridním topením)
+	5.27952 t (0.00532 t CO2 ušetřeno hybridním topením)
 
 Podíl využitého tepla ze serverů: 
 
-	62.3839%
+	100%

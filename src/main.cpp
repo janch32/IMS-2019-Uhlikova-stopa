@@ -22,7 +22,8 @@ int main(int argc, char *const *argv)
 	return 0;
 }
 
-#define TIME_INTERVAL 60 // sec
+#define TIME_INTERVAL 60 // Sekundy
+#define HEATING_STEP_PRECISION 1000.0 // Inkrement výkonu topení při kalibraci kanceláře
 
 void calcViability(double tt, double K, double P, double V)
 {
@@ -76,7 +77,7 @@ void calcViability(double tt, double K, double P, double V)
 			tiPreOld = tiPre;
 			tiPre = calcNewInnerTemp(tiPre, toPre, K, heatingPre ? heatStrenght : 0, V, TIME_INTERVAL);
 
-			if (heatingPre && (tiPreOld > tiPre)) heatStrenght += 1000.0;
+			if (heatingPre && (tiPreOld > tiPre)) heatStrenght += HEATING_STEP_PRECISION;
 		}
 	}
 
@@ -84,12 +85,13 @@ void calcViability(double tt, double K, double P, double V)
 	{
 		for (int s = 0; s < 60*60*24; s += TIME_INTERVAL)
 		{
+			if (d > 100 && d < 265) continue;
+			
 			// Bojler
 
 			if(tiB > tt + 2) heatingB = false;
-			else if(tiB < tt) heatingB = true;
+			else if(tiB < tt - 1) heatingB = true;
 			
-			if (d > 100 && d < 265) continue;
 
 			toB = calcCurrentOuterTemp(d, s);
 			tiB = calcNewInnerTemp(tiB, toB, K, heatingB ? heatStrenght : 0, V, TIME_INTERVAL);
@@ -162,7 +164,7 @@ void calcViability(double tt, double K, double P, double V)
 	else
 	{
 		cout << endl << "Vaše samotné servery by kancelář vytopit nezvládly." << endl;
-		cout << endl << "Tun CO2 vytvořeno navíc za rok hybridního topení: " << endl 
+		cout << endl << "Tun CO2 vytvořeno za rok hybridního topení: " << endl 
 		<< endl << "\t" << hybridCarbon << " t " << "(" << (allCarbon - hybridCarbon) 
 		<< " t CO2 ušetřeno hybridním topením)" << endl;
 	} 
