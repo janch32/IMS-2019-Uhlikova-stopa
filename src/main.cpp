@@ -23,37 +23,105 @@ int main(int argc, char *const *argv)
 }
 
 #define TIME_INTERVAL 60 // sec
+#define HEAT_STRENGHT 10000.0 // Watt
 
 void calcViability(double tt, double K, double P, double V)
 {
-	double to;
-	double ti = tt;
+	double toS;
+	double tiS = tt;
+
+	double toB;
+	double tiB = tt;
+
+	double toSB;
+	double tiSB = tt;
+
+	long heatedStepsS = 0;
+	long stepsS = 0;
+
+	long heatedStepsSB = 0;
+	long stepsSB = 0;
+
+	bool heatingS = true;
+	bool heatingB = true;
+	bool heatingSB = true;
+
+	double heatConsumedB = 0.0;
+	double heatConsumedSB = 0.0;
+
+	double totalHeatSB = 0.0;
+
+	bool boilerOn = false;
 
 	for (int d = 0; d < 365; ++d)
 	{
-		//cout << "\nDay: " << d + 1 << "\n\n";
-
-		int heatedSteps = 0;
-		int steps = 0;
-
-		bool heating = true;
-		
 		for (int s = 0; s < 60*60*24; s += TIME_INTERVAL)
 		{
-			heatedSteps += heating;
-			steps++;
+			// Server
 
-			if(ti > tt + 2) heating = false;
-			else if(ti < tt) heating = true;
+			if(tiS > tt + 2) heatingS = false;
+			else if(tiS < tt) heatingS = true;
+			
+			if (d > 100 && d < 265) heatingS = false;
+			else stepsS++;
 
-			to = calcCurrentOuterTemp(d, s);
-			ti = calcNewInnerTemp(ti, to, K, heating ? P : 0, V, TIME_INTERVAL);
+			heatedStepsS += heatingS;
 
-			cout << ti << "," << to << endl;
+			toS = calcCurrentOuterTemp(d, s);
+			tiS = calcNewInnerTemp(tiS, toS, K, heatingS ? P : 0, V, TIME_INTERVAL);
+
+			cout << tiS << "," << toS << endl;
+
+			// Bojler
+
+			if(tiB > tt + 2) heatingB = false;
+			else if(tiB < tt) heatingB = true;
+			
+			if (d > 100 && d < 265) heatingB = false;
+
+			toB = calcCurrentOuterTemp(d, s);
+			tiB = calcNewInnerTemp(tiB, toB, K, heatingB ? HEAT_STRENGHT : 0, V, TIME_INTERVAL);
+
+			if (heatingB) heatConsumedB += HEAT_STRENGHT * (TIME_INTERVAL / 3600.0);
+
+			// Kombinované topení
+
+			if(tiSB > tt + 2) heatingSB = false;
+			else if(tiSB < tt) heatingSB = true;
+			
+			if (d > 100 && d < 265) heatingSB = false;
+			else stepsSB++;
+
+			heatedStepsSB += heatingSB;
+
+			if (tiSB < tt - 2)
+			{
+				totalHeatSB = HEAT_STRENGHT + P;
+				boilerOn = true;
+			}
+
+			else if (tiSB > tt + 2)
+			{
+				totalHeatSB = P;
+				boilerOn = false;
+			}
+
+			toSB = calcCurrentOuterTemp(d, s);
+			tiSB = calcNewInnerTemp(tiSB, toSB, K, heatingSB ? totalHeatSB : 0, V, TIME_INTERVAL);
+
+			if (boilerOn && heatingSB) heatConsumedSB += HEAT_STRENGHT * (TIME_INTERVAL / 3600.0);
 		}
-
-		//cout << heatedSteps / (double)steps * 100 << "%" << endl;
 	}
+
+	// Topení serverem
+	cout << endl << heatedStepsS / (double)stepsS * 100 << "%" << endl;
+
+	// Kombinované topení
+
+	cout << endl << "Tun CO2 vytvořeno navíc za rok hybridního topení: " << (heatConsumedSB / 1000000) * 0.2 << " t" << endl;
+
+	// Normální topení
+	cout << endl << "Tun CO2 vytvořeno navíc za rok normálního topení: " << (heatConsumedB / 1000000) * 0.2 << " t" << endl;
 }
 
 double calcNewInnerTemp(double ti, double to, double K, double P, double V, int time)
