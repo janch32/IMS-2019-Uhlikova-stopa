@@ -13,8 +13,8 @@ Vaše samotné servery by kancelář vytopit nezvládly.
 
 Tun CO2 vytvořeno za rok hybridního topení: 
 
-	5.27952 t (0.00532 t CO2 ušetřeno hybridním topením)
+	3.74488 t (1.53996 t CO2 ušetřeno hybridním topením)
 
 Podíl využitého tepla ze serverů: 
 
-	100%
+	85%

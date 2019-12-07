@@ -2,14 +2,11 @@
 
 int main(int argc, char *const *argv)
 {
-	double ti = 0.0;
-	double K = 0.0;
-	double P = 0.0;
-	double V = 0.0;
+	input args;
 
 	try
 	{
-		parseArgs(argc, argv, &ti, &K, &P, &V);
+		parseArgs(argc, argv, &args);
 	}
 	catch(const std::exception& e)
 	{
@@ -17,7 +14,9 @@ int main(int argc, char *const *argv)
 		return -1;
 	}
 
-	calcViability(ti, K, P, V);
+	output data = calcViability(&args);
+
+	dumpData(data);
 
 	return 0;
 }
@@ -25,57 +24,50 @@ int main(int argc, char *const *argv)
 #define TIME_INTERVAL 60 // Sekundy
 #define HEATING_STEP_PRECISION 1000.0 // Inkrement výkonu topení při kalibraci kanceláře
 
-void calcViability(double tt, double K, double P, double V)
+output calcViability(input *args)
 {
-	double toS;
-	double tiS = tt;
+	double serverHeat = args->P;	// Teplota serveru v závislosti na denní době
+	double to; 						// Teplota venku
+	long steps = 0;					// Počet měřených minut
 
-	double toB;
-	double tiB = tt;
-
-	double toSB;
-	double tiSB = tt;
-
-	double toPre;
-	double tiPre = tt;
-	double tiPreOld = tt;
-
-	long heatedStepsS = 0;
-	long stepsS = 0;
-
-	long heatedStepsSB = 0;
-	long stepsSB = 0;
-
-	bool heatingS = true;
-	bool heatingB = true;
-	bool heatingSB = true;
+	// Běh k určení vhodného výkonu topení
+	double tiPre = args->tt;
+	double tiPreOld = args->tt;
 	bool heatingPre = true;
-
-	double heatConsumedB = 0.0;
-	double heatConsumedSB = 0.0;
-
-	double totalHeatSB = 0.0;
-	bool boilerOn = false;
-
-	bool serversFailed = false;
-
 	double heatStrenght = 0.0;
 
+	// Simulace topení serverem
+	double tiS = args->tt;
+	bool heatingS = true;
+	long heatedStepsS = 0;
+	bool serversFailedS = false;
+
+	// Simulace topení samotným bojlerem
+	double tiB = args->tt;
+	bool heatingB = true;
+	double heatConsumedB = 0.0;
+
+	// Simulace hybridního vytápění
+	double tiSB = args->tt;
+	bool heatingSB = true;
+	long heatedStepsSB = 0;
+	double heatConsumedSB = 0.0;
+	double totalHeatSB = 0.0;
+	bool boilerOnSB = false;
 
 	for (int d = 0; d < 365; ++d)
 	{
 		for (int s = 0; s < 60*60*24; s += TIME_INTERVAL)
 		{
+			if (d > 100 && d < 265) continue;
+
 			// Určení vhodného výkonu topení
+			if(tiPre > args->tt + 2) heatingPre = false;
+			else if(tiPre < args->tt) heatingPre = true;
 
-			if(tiPre > tt + 2) heatingPre = false;
-			else if(tiPre < tt) heatingPre = true;
-			
-			if (d > 100 && d < 265) heatingPre = false;
-
-			toPre = calcCurrentOuterTemp(d, s);
+			to = calcCurrentOuterTemp(d, s);
 			tiPreOld = tiPre;
-			tiPre = calcNewInnerTemp(tiPre, toPre, K, heatingPre ? heatStrenght : 0, V, TIME_INTERVAL);
+			tiPre = calcNewInnerTemp(tiPre, to, args->K, heatingPre ? heatStrenght : 0, args->V, TIME_INTERVAL);
 
 			if (heatingPre && (tiPreOld > tiPre)) heatStrenght += HEATING_STEP_PRECISION;
 		}
@@ -86,77 +78,83 @@ void calcViability(double tt, double K, double P, double V)
 		for (int s = 0; s < 60*60*24; s += TIME_INTERVAL)
 		{
 			if (d > 100 && d < 265) continue;
+
+			if (args->nightSpecified) serverHeat = calcCurrentServerHeat(*args, s);
 			
 			// Bojler
 
-			if(tiB > tt + 2) heatingB = false;
-			else if(tiB < tt - 1) heatingB = true;
+			if (tiB > args->tt + 2) heatingB = false;
+			else if (tiB < args->tt - 1) heatingB = true;
 			
 
-			toB = calcCurrentOuterTemp(d, s);
-			tiB = calcNewInnerTemp(tiB, toB, K, heatingB ? heatStrenght : 0, V, TIME_INTERVAL);
+			to = calcCurrentOuterTemp(d, s);
+			tiB = calcNewInnerTemp(tiB, to, args->K, heatingB ? heatStrenght : 0, args->V, TIME_INTERVAL);
 
 			if (heatingB) heatConsumedB += heatStrenght * (TIME_INTERVAL / 3600.0);
 
 			// Server
 
-			if(tiS > tt + 2) heatingS = false;
-			else if(tiS < tt) heatingS = true;
-			
-			if (d > 100 && d < 265) heatingS = false;
-			else stepsS++;
+			if (tiS > args->tt + 2) heatingS = false;
+			else if (tiS < args->tt) heatingS = true;
 
 			heatedStepsS += heatingS;
 
-			toS = calcCurrentOuterTemp(d, s);
-			tiS = calcNewInnerTemp(tiS, toS, K, heatingS ? P : 0, V, TIME_INTERVAL);
+			to = calcCurrentOuterTemp(d, s);
+			tiS = calcNewInnerTemp(tiS, to, args->K, heatingS ? serverHeat : 0, args->V, TIME_INTERVAL);
 
-			if (heatingS && (tiS < tt - 1)) serversFailed = true;
+			if (heatingS && (tiS < args->tt - 1)) serversFailedS = true;
 
 			// Kombinované topení
 
-			if(tiSB > tt + 2) heatingSB = false;
-			else if(tiSB < tt) heatingSB = true;
-			
-			if (d > 100 && d < 265) heatingSB = false;
-			else stepsSB++;
+			if (tiSB > args->tt + 2) heatingSB = false;
+			else if (tiSB < args->tt) heatingSB = true;
 
 			heatedStepsSB += heatingSB;
 
-			if (tiSB < tt - 1)
+			if (tiSB < args->tt - 1)
 			{
 				totalHeatSB = heatStrenght;
-				boilerOn = true;
+				boilerOnSB = true;
 			}
 
-			else if (tiSB > tt + 2)
+			else if (tiSB > args->tt + 2)
 			{
-				totalHeatSB = P;
-				boilerOn = false;
+				totalHeatSB = serverHeat;
+				boilerOnSB = false;
 			}
 
-			toSB = calcCurrentOuterTemp(d, s);
-			tiSB = calcNewInnerTemp(tiSB, toSB, K, heatingSB ? totalHeatSB : 0, V, TIME_INTERVAL);
+			to = calcCurrentOuterTemp(d, s);
+			tiSB = calcNewInnerTemp(tiSB, to, args->K, heatingSB ? totalHeatSB : 0, args->V, TIME_INTERVAL);
 
-			if (boilerOn && heatingSB) heatConsumedSB += heatStrenght * (TIME_INTERVAL / 3600.0);
+			if (boilerOnSB && heatingSB) heatConsumedSB += heatStrenght * (TIME_INTERVAL / 3600.0);
 
-			//if (heatingSB) cout << tiSB << "," << toSB << endl;
+			steps++;
 		}
 	}
 
-	double allCarbon = (heatConsumedB / 1000000) * 0.2;
-	double hybridCarbon = (heatConsumedSB / 1000000) * 0.2;
+	output result;
 
+	result.allCO2 = (heatConsumedB / 1000000) * 0.2;
+	result.hybridCO2 = (heatConsumedSB / 1000000) * 0.2;
+	result.effectivity = (int)(heatedStepsS / (double)steps * 100);
+	result.heatStrenght = heatStrenght;
+	result.serverFail = serversFailedS;
+
+	return result;
+}
+
+void dumpData(output data)
+{
 	cout << "Výsledky na základě teplotních dat topné sezóny zimy 2018" << endl;
 	cout << "---------------------------------------------------------" << endl;
 
 	cout << endl << "Vhodný výkon topení pro specifikovanou kancelář: " << endl 
-	<< endl << "\t" << heatStrenght << " W" << endl;
+	<< endl << "\t" << data.heatStrenght << " W" << endl;
 
 	cout << endl << "Tun CO2 vytvořeno za rok normálního topení: " << endl 
-	<< endl << "\t" << allCarbon << " t" << endl;
+	<< endl << "\t" << data.allCO2 << " t" << endl;
 
-	if (!serversFailed)
+	if (!data.serverFail)
 	{
 		cout << endl << "Vaše samotné servery by kancelář vytopily." << endl;
 	}
@@ -165,12 +163,12 @@ void calcViability(double tt, double K, double P, double V)
 	{
 		cout << endl << "Vaše samotné servery by kancelář vytopit nezvládly." << endl;
 		cout << endl << "Tun CO2 vytvořeno za rok hybridního topení: " << endl 
-		<< endl << "\t" << hybridCarbon << " t " << "(" << (allCarbon - hybridCarbon) 
+		<< endl << "\t" << data.hybridCO2 << " t " << "(" << (data.allCO2 - data.hybridCO2) 
 		<< " t CO2 ušetřeno hybridním topením)" << endl;
 	} 
 
 	cout << endl << "Podíl využitého tepla ze serverů: " << endl 
-	<< endl << "\t" << heatedStepsS / (double)stepsS * 100 << "%" << endl;
+	<< endl << "\t" << data.effectivity << "%" << endl;
 }
 
 double calcNewInnerTemp(double ti, double to, double K, double P, double V, int time)
@@ -186,25 +184,39 @@ double calcNewInnerTemp(double ti, double to, double K, double P, double V, int 
 	Qt = P * time;
 	Qz = K * (ti - to) * time;
 
-	return ti + ((Qt - Qz) / (c * m)); // Výsledná teplota místnosti ti po časovém intervalu t
+	return ti + ((Qt - Qz) / (c * m)); 	// Výsledná teplota místnosti ti po časovém intervalu t
 }
 
-void parseArgs(int argc, char *const *argv, double *t, double *K, double *P, double *V)
+double calcCurrentServerHeat(input data, int time)
+{
+	time = time / 3600;
+
+	if (time > data.startWork && time < data.endWork) return data.P;
+	else return (((double)data.nightUsage * data.P) / 100);
+}
+
+void parseArgs(int argc, char *const *argv, input *args)
 {
 	int opt;
+
 	bool ist = false;
 	bool isK = false;
 	bool isP = false;
 	bool isV = false;
+	bool iss = false;
+	bool ise = false;
+	bool isn = false;
 
-	while((opt = getopt(argc, argv, "-:t:K:P:V:")) != -1)  
+	args->nightSpecified = false;
+
+	while((opt = getopt(argc, argv, "-:t:K:P:V:s:e:n:")) != -1)  
     {  
         switch(opt)
         {
             case 't':
 				if (ist) throw std::invalid_argument( "Duplikován přepínač -t" );
 
-				*t = stod(optarg);
+				args->tt = stod(optarg);
 
 				ist = true;
 				break;
@@ -212,22 +224,44 @@ void parseArgs(int argc, char *const *argv, double *t, double *K, double *P, dou
             case 'K': 
 				if (isK) throw std::invalid_argument( "Duplikován přepínač -K" );
 
-				*K = stod(optarg);
+				args->K = stod(optarg);
 				isK = true;
                 break;
 
 			case 'P': 
 				if (isP) throw std::invalid_argument( "Duplikován přepínač -P" );
 
-				*P = stod(optarg);
+				args->P = stod(optarg);
 				isP = true;
                 break;
 
 			case 'V': 
 				if (isV) throw std::invalid_argument( "Duplikován přepínač -V" );
 
-				*V = stod(optarg);
+				args->V = stod(optarg);
 				isV = true;
+                break;
+			
+			case 's': 
+				if (iss) throw std::invalid_argument( "Duplikován přepínač -s" );
+
+				args->startWork = stoi(optarg);
+				iss = true;
+                break;
+
+			case 'e': 
+				if (ise) throw std::invalid_argument( "Duplikován přepínač -e" );
+
+				args->endWork = stoi(optarg);
+				ise = true;
+                break;
+
+			case 'n': 
+				if (isn) throw std::invalid_argument( "Duplikován přepínač -n" );
+
+				args->nightUsage = stoi(optarg);
+				args->nightSpecified = true;
+				isn = true;
                 break;
 
 			case ':':
@@ -238,7 +272,14 @@ void parseArgs(int argc, char *const *argv, double *t, double *K, double *P, dou
         }
     }
 
-	if (!ist || !isK || !isP || !isV) throw std::invalid_argument( "Všechny čtyři přepínače (-t, -V, -P, -K) jsou povinné." );
+	if (!ist || !isK || !isP || !isV) 
+		throw std::invalid_argument( "Všechny čtyři přepínače (-t, -V, -P, -K) jsou povinné." );
+
+	if (!(iss && ise && isn) && !(!iss && !ise && !isn)) 
+		throw std::invalid_argument( "Přepínače -s, -e a -n je třeba použít všechny, nebo žádný." );
+
+	if (args->startWork > args->endWork)
+		throw std::invalid_argument( "Pracovní doba lze udat pouze v rámci jednoho dne." );
 }
 
 double calcCurrentOuterTemp(int day, int sec)

@@ -4,11 +4,34 @@
 
 using namespace std;
 
+struct input{
+    double tt;
+	double K;
+	double P;
+	double V;
+	int startWork;
+	int endWork;
+	int nightUsage;
+	bool nightSpecified;
+};
+
+struct output{
+    double heatStrenght;
+    double allCO2;
+    double hybridCO2;
+    int effectivity;
+	bool serverFail;
+};
+
 int main(int argc, char *const *argv);
 
-void parseArgs(int argc, char *const *argv, double *t, double *K, double *P, double *V);
+void parseArgs(int argc, char *const *argv, input *args);
 
-void calcViability(double ti, double K, double P, double V);
+output calcViability(input *args);
+
+void dumpData(output data);
+
+double calcCurrentServerHeat(input data, int time);
 
 double calcCurrentOuterTemp(int day, int sec);
 
