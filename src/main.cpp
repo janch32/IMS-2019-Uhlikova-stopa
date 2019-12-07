@@ -23,7 +23,6 @@ int main(int argc, char *const *argv)
 }
 
 #define TIME_INTERVAL 60 // sec
-#define HEAT_STRENGHT 10000.0 // Watt
 
 void calcViability(double tt, double K, double P, double V)
 {
@@ -36,6 +35,10 @@ void calcViability(double tt, double K, double P, double V)
 	double toSB;
 	double tiSB = tt;
 
+	double toPre;
+	double tiPre = tt;
+	double tiPreOld = tt;
+
 	long heatedStepsS = 0;
 	long stepsS = 0;
 
@@ -45,18 +48,54 @@ void calcViability(double tt, double K, double P, double V)
 	bool heatingS = true;
 	bool heatingB = true;
 	bool heatingSB = true;
+	bool heatingPre = true;
 
 	double heatConsumedB = 0.0;
 	double heatConsumedSB = 0.0;
 
 	double totalHeatSB = 0.0;
-
 	bool boilerOn = false;
+
+	bool serversFailed = false;
+
+	double heatStrenght = 0.0;
+
 
 	for (int d = 0; d < 365; ++d)
 	{
 		for (int s = 0; s < 60*60*24; s += TIME_INTERVAL)
 		{
+			// Určení vhodného výkonu topení
+
+			if(tiPre > tt + 2) heatingPre = false;
+			else if(tiPre < tt) heatingPre = true;
+			
+			if (d > 100 && d < 265) heatingPre = false;
+
+			toPre = calcCurrentOuterTemp(d, s);
+			tiPreOld = tiPre;
+			tiPre = calcNewInnerTemp(tiPre, toPre, K, heatingPre ? heatStrenght : 0, V, TIME_INTERVAL);
+
+			if (heatingPre && (tiPreOld > tiPre)) heatStrenght += 1000.0;
+		}
+	}
+
+	for (int d = 0; d < 365; ++d)
+	{
+		for (int s = 0; s < 60*60*24; s += TIME_INTERVAL)
+		{
+			// Bojler
+
+			if(tiB > tt + 2) heatingB = false;
+			else if(tiB < tt) heatingB = true;
+			
+			if (d > 100 && d < 265) continue;
+
+			toB = calcCurrentOuterTemp(d, s);
+			tiB = calcNewInnerTemp(tiB, toB, K, heatingB ? heatStrenght : 0, V, TIME_INTERVAL);
+
+			if (heatingB) heatConsumedB += heatStrenght * (TIME_INTERVAL / 3600.0);
+
 			// Server
 
 			if(tiS > tt + 2) heatingS = false;
@@ -70,19 +109,7 @@ void calcViability(double tt, double K, double P, double V)
 			toS = calcCurrentOuterTemp(d, s);
 			tiS = calcNewInnerTemp(tiS, toS, K, heatingS ? P : 0, V, TIME_INTERVAL);
 
-			cout << tiS << "," << toS << endl;
-
-			// Bojler
-
-			if(tiB > tt + 2) heatingB = false;
-			else if(tiB < tt) heatingB = true;
-			
-			if (d > 100 && d < 265) heatingB = false;
-
-			toB = calcCurrentOuterTemp(d, s);
-			tiB = calcNewInnerTemp(tiB, toB, K, heatingB ? HEAT_STRENGHT : 0, V, TIME_INTERVAL);
-
-			if (heatingB) heatConsumedB += HEAT_STRENGHT * (TIME_INTERVAL / 3600.0);
+			if (heatingS && (tiS < tt - 1)) serversFailed = true;
 
 			// Kombinované topení
 
@@ -94,9 +121,9 @@ void calcViability(double tt, double K, double P, double V)
 
 			heatedStepsSB += heatingSB;
 
-			if (tiSB < tt - 2)
+			if (tiSB < tt - 1)
 			{
-				totalHeatSB = HEAT_STRENGHT + P;
+				totalHeatSB = heatStrenght;
 				boilerOn = true;
 			}
 
@@ -109,19 +136,39 @@ void calcViability(double tt, double K, double P, double V)
 			toSB = calcCurrentOuterTemp(d, s);
 			tiSB = calcNewInnerTemp(tiSB, toSB, K, heatingSB ? totalHeatSB : 0, V, TIME_INTERVAL);
 
-			if (boilerOn && heatingSB) heatConsumedSB += HEAT_STRENGHT * (TIME_INTERVAL / 3600.0);
+			if (boilerOn && heatingSB) heatConsumedSB += heatStrenght * (TIME_INTERVAL / 3600.0);
+
+			//if (heatingSB) cout << tiSB << "," << toSB << endl;
 		}
 	}
 
-	// Topení serverem
-	cout << endl << heatedStepsS / (double)stepsS * 100 << "%" << endl;
+	double allCarbon = (heatConsumedB / 1000000) * 0.2;
+	double hybridCarbon = (heatConsumedSB / 1000000) * 0.2;
 
-	// Kombinované topení
+	cout << "Výsledky na základě teplotních dat topné sezóny zimy 2018" << endl;
+	cout << "---------------------------------------------------------" << endl;
 
-	cout << endl << "Tun CO2 vytvořeno navíc za rok hybridního topení: " << (heatConsumedSB / 1000000) * 0.2 << " t" << endl;
+	cout << endl << "Vhodný výkon topení pro specifikovanou kancelář: " << endl 
+	<< endl << "\t" << heatStrenght << " W" << endl;
 
-	// Normální topení
-	cout << endl << "Tun CO2 vytvořeno navíc za rok normálního topení: " << (heatConsumedB / 1000000) * 0.2 << " t" << endl;
+	cout << endl << "Tun CO2 vytvořeno za rok normálního topení: " << endl 
+	<< endl << "\t" << allCarbon << " t" << endl;
+
+	if (!serversFailed)
+	{
+		cout << endl << "Vaše samotné servery by kancelář vytopily." << endl;
+	}
+
+	else
+	{
+		cout << endl << "Vaše samotné servery by kancelář vytopit nezvládly." << endl;
+		cout << endl << "Tun CO2 vytvořeno navíc za rok hybridního topení: " << endl 
+		<< endl << "\t" << hybridCarbon << " t " << "(" << (allCarbon - hybridCarbon) 
+		<< " t CO2 ušetřeno hybridním topením)" << endl;
+	} 
+
+	cout << endl << "Podíl využitého tepla ze serverů: " << endl 
+	<< endl << "\t" << heatedStepsS / (double)stepsS * 100 << "%" << endl;
 }
 
 double calcNewInnerTemp(double ti, double to, double K, double P, double V, int time)
