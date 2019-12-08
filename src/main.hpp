@@ -8,10 +8,10 @@ struct input{
     double tt;
 	double K;
 	double P;
+	double nP;
 	double V;
 	int startWork;
 	int endWork;
-	int nightUsage;
 	bool nightSpecified;
 };
 
@@ -19,7 +19,7 @@ struct output{
     double heatStrenght;
     double allCO2;
     double hybridCO2;
-    int effectivity;
+    double effectivity;
 	bool serverFail;
 };
 

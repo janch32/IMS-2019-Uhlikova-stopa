@@ -8,6 +8,7 @@ int main(int argc, char *const *argv)
 	{
 		parseArgs(argc, argv, &args);
 	}
+
 	catch(const std::exception& e)
 	{
 		cerr << "Exception: " << e.what() << endl;
@@ -50,7 +51,6 @@ output calcViability(input *args)
 	// Simulace hybridního vytápění
 	double tiSB = args->tt;
 	bool heatingSB = true;
-	long heatedStepsSB = 0;
 	double heatConsumedSB = 0.0;
 	double totalHeatSB = 0.0;
 	bool boilerOnSB = false;
@@ -109,8 +109,6 @@ output calcViability(input *args)
 			if (tiSB > args->tt + 2) heatingSB = false;
 			else if (tiSB < args->tt) heatingSB = true;
 
-			heatedStepsSB += heatingSB;
-
 			if (tiSB < args->tt - 1)
 			{
 				totalHeatSB = heatStrenght;
@@ -136,7 +134,7 @@ output calcViability(input *args)
 
 	result.allCO2 = (heatConsumedB / 1000000) * 0.2;
 	result.hybridCO2 = (heatConsumedSB / 1000000) * 0.2;
-	result.effectivity = (int)(heatedStepsS / (double)steps * 100);
+	result.effectivity = (heatedStepsS / (double)steps * 100);
 	result.heatStrenght = heatStrenght;
 	result.serverFail = serversFailedS;
 
@@ -192,7 +190,7 @@ double calcCurrentServerHeat(input data, int time)
 	time = time / 3600;
 
 	if (time > data.startWork && time < data.endWork) return data.P;
-	else return (((double)data.nightUsage * data.P) / 100);
+	else return data.nP;
 }
 
 void parseArgs(int argc, char *const *argv, input *args)
@@ -259,7 +257,7 @@ void parseArgs(int argc, char *const *argv, input *args)
 			case 'n': 
 				if (isn) throw std::invalid_argument( "Duplikován přepínač -n" );
 
-				args->nightUsage = stoi(optarg);
+				args->nP = stoi(optarg);
 				args->nightSpecified = true;
 				isn = true;
                 break;
