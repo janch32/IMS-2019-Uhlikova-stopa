@@ -84,6 +84,6 @@ void parseArgs(int argc, char *const *argv, ProgramArgs *args)
 	if (!(iss && ise && isn) && !(!iss && !ise && !isn)) 
 		throw invalid_argument( "Přepínače -s, -e a -n je třeba použít všechny, nebo žádný." );
 
-	if (args->startWork > args->endWork)
+	if (args->nightSpecified && args->startWork > args->endWork)
 		throw invalid_argument( "Pracovní doba lze udat pouze v rámci jednoho dne." );
 }
