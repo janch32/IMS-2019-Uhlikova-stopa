@@ -1,0 +1,16 @@
+Výsledky simulace topné sezóny podle teplotních dat zimy 2018
+-------------------------------------------------------------
+
+Vhodný výkon topení pro specifikovanou kancelář: 
+	12000 W
+
+Tun CO2 vytvořeno za rok normálního topení: 
+	5.26769 t
+
+Vaše samotné servery by kancelář vytopit nezvládly.
+
+Tun CO2 vytvořeno za rok hybridního topení: 
+	2.18722 t (3.08047 t CO2 ušetřeno hybridním topením)
+
+Podíl využitého tepla ze serverů: 
+	76.3682%
