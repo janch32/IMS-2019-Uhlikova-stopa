@@ -10,9 +10,12 @@ CFLAGS += -std=c++11 -pedantic -Wall -Wextra -g
 LDFLAGS += -std=c++11
 LDLIBS += -lstdc++
 
-.PHONY: all
+.PHONY: all run
 
 all: $(EXE)
+
+run: ./sim
+	./sim -t$(t) -V$(V) -P$(P) -K$(K)
 
 $(EXE): $(OBJ)
 	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
