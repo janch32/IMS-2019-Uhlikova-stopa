@@ -25,11 +25,11 @@ public:
 	static double getTemp(int day, int seconds);
 private:
 	/** Naměřená teplota v 7h ráno */
-    static double morning[];
-    
-    /** Naměřená teplota v 14h odpoledne */
-    static double noon[];
-    
-    /** Naměřená teplota v 21h večer */
-    static double evening[];
+	static double morning[];
+	
+	/** Naměřená teplota v 14h odpoledne */
+	static double noon[];
+	
+	/** Naměřená teplota v 21h večer */
+	static double evening[];
 };

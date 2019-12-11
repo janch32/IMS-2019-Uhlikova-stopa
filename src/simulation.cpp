@@ -1,9 +1,9 @@
 #include "simulation.hpp"
 
 Simulation::Simulation(ProgramArgs args){
-    buildingVolume = args.V;
-    buildingEfficiency = args.K;
-    tempTarget = args.tt;
+	buildingVolume = args.V;
+	buildingEfficiency = args.K;
+	tempTarget = args.tt;
 	serverNightCycle = args.nightSpecified;
 	serverHeatDay = args.P;
 	serverHeatNight = args.nP;
@@ -82,21 +82,21 @@ void Simulation::run(bool serverHeat, bool boilerHeat)
 
 void Simulation::recalculateInnerTemp()
 {
-    // Měrná tepelná kapacita vzduchu (J/(kg * K))
-    // @see https://www.tzb-info.cz/tabulky-a-vypocty/38-fyzikalni-hodnoty-pro-suchy-vzduch-pri-tlaku-100-kpa
-    double c = 1000;
-    
-    // Hmotnost vzduchu v místnosti (kg)
-    // Pro zjednudušení výpočtů je použita konstanta 1.2 pro hustotu vzduchu
+	// Měrná tepelná kapacita vzduchu (J/(kg * K))
+	// @see https://www.tzb-info.cz/tabulky-a-vypocty/38-fyzikalni-hodnoty-pro-suchy-vzduch-pri-tlaku-100-kpa
+	double c = 1000;
+	
+	// Hmotnost vzduchu v místnosti (kg)
+	// Pro zjednudušení výpočtů je použita konstanta 1.2 pro hustotu vzduchu
 	double m = 1.2 * buildingVolume;
 	
-    // Tepelný zisk topením (J)
-    double Qt = heatingPower * TIME_INTERVAL;
-    
-    // Tepelná ztráta budovy (J)
+	// Tepelný zisk topením (J)
+	double Qt = heatingPower * TIME_INTERVAL;
+	
+	// Tepelná ztráta budovy (J)
 	double Qz = buildingEfficiency * (tempIn - tempOut) * TIME_INTERVAL;
 
-    // Výsledná teplota místnosti po časovém intervalu TIME_INTERVAL
+	// Výsledná teplota místnosti po časovém intervalu TIME_INTERVAL
 	tempIn += (Qt - Qz) / (c * m);
 }
 
@@ -112,7 +112,7 @@ double Simulation::getServerHeat(int time)
 void Simulation::calculateRecommendedHeat()
 {
 	tempIn = tempTarget;
-    double tempInOld = tempTarget;
+	double tempInOld = tempTarget;
 	bool heating = true;
 	
 	for (int d = 1; d <= OutsideTemp::days; ++d)

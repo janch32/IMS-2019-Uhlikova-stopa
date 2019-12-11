@@ -16,10 +16,10 @@ void parseArgs(int argc, char *const *argv, ProgramArgs *args)
 
 	int opt;
 	while((opt = getopt(argc, argv, "-:t:K:P:V:s:e:n:")) != -1)  
-    {  
-        switch(opt)
-        {
-            case 't':
+	{  
+		switch(opt)
+		{
+			case 't':
 				if (ist) throw invalid_argument( "Duplikován přepínač -t" );
 
 				args->tt = stod(optarg);
@@ -27,40 +27,40 @@ void parseArgs(int argc, char *const *argv, ProgramArgs *args)
 				ist = true;
 				break;
 
-            case 'K': 
+			case 'K': 
 				if (isK) throw invalid_argument( "Duplikován přepínač -K" );
 
 				args->K = stod(optarg);
 				isK = true;
-                break;
+				break;
 
 			case 'P': 
 				if (isP) throw invalid_argument( "Duplikován přepínač -P" );
 
 				args->P = stod(optarg);
 				isP = true;
-                break;
+				break;
 
 			case 'V': 
 				if (isV) throw invalid_argument( "Duplikován přepínač -V" );
 
 				args->V = stod(optarg);
 				isV = true;
-                break;
+				break;
 			
 			case 's': 
 				if (iss) throw invalid_argument( "Duplikován přepínač -s" );
 
 				args->startWork = stoi(optarg);
 				iss = true;
-                break;
+				break;
 
 			case 'e': 
 				if (ise) throw invalid_argument( "Duplikován přepínač -e" );
 
 				args->endWork = stoi(optarg);
 				ise = true;
-                break;
+				break;
 
 			case 'n': 
 				if (isn) throw invalid_argument( "Duplikován přepínač -n" );
@@ -68,15 +68,15 @@ void parseArgs(int argc, char *const *argv, ProgramArgs *args)
 				args->nP = stoi(optarg);
 				args->nightSpecified = true;
 				isn = true;
-                break;
+				break;
 
 			case ':':
-                throw invalid_argument( "Parametru chybí hodnota" );
+				throw invalid_argument( "Parametru chybí hodnota" );
 
 			default:
 				throw invalid_argument( "Nesrozumitelné argumenty" );
-        }
-    }
+		}
+	}
 
 	if (!ist || !isK || !isP || !isV) 
 		throw invalid_argument( "Všechny čtyři přepínače (-t, -V, -P, -K) jsou povinné." );
